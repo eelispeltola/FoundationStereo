@@ -41,7 +41,7 @@ if __name__ == '__main__':
     logging.info(f"args:\n{args}")
     logging.info(f"Using pretrained model from {ckpt_dir}")
     model = FoundationStereoOnnx(cfg)
-    ckpt = torch.load(ckpt_dir)
+    ckpt = torch.load(ckpt_dir, weights_only=False)
     logging.info(f"ckpt global_step:{ckpt['global_step']}, epoch:{ckpt['epoch']}")
     model.load_state_dict(ckpt['model'])
     model.cuda()

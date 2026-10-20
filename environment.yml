@@ -8,9 +8,10 @@ dependencies:
   - python=3.11
   - pip
   - pip:
-    - torch==2.4.1
-    - torchvision==0.19.1
-    - torchaudio==2.4.1
+    - --extra-index-url https://download.pytorch.org/whl/cu129
+    - torch==2.8.0+cu129
+    - torchvision==0.23.0+cu129
+    - torchaudio==2.8.0+cu129
     - scikit-image
     - omegaconf
     - opencv-contrib-python
@@ -31,5 +32,6 @@ dependencies:
     - einops
     - gdown
     - nodejs
-    - xformers==0.0.28.post1
+    # optional: flash-attn==2.8.2 (xformers 0.0.32 rejects >2.8.2), no prebuilt wheel for torch 2.8 so it must be built from source
+    - xformers==0.0.32.post2
     - huggingface-hub

@@ -71,7 +71,7 @@ class CuSFMDataInference:
         if 'vit_size' not in cfg:
             cfg['vit_size'] = 'vitl'
         self.model = FoundationStereo(cfg)
-        ckpt = torch.load(self.args.ckpt_dir, map_location=self.device)
+        ckpt = torch.load(self.args.ckpt_dir, map_location=self.device, weights_only=False)
         self.model.load_state_dict(ckpt['model'])
         self.model.to(self.device)
         self.model.eval()

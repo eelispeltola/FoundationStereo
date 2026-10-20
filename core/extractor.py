@@ -17,6 +17,14 @@ from core.submodule import LayerNorm2d, BasicConv, Conv2x_IN
 from Utils import get_resize_keep_aspect_ratio, freeze_model
 import timm
 
+try:
+    # xformers' bundled FlashAttention-3 only runs on Hopper (sm_90); auto-dispatch picks it on other GPUs and crashes
+    from xformers.ops.fmha import dispatch as xformers_dispatch
+    if torch.cuda.is_available() and torch.cuda.get_device_capability() != (9, 0):
+        xformers_dispatch._set_use_fa3(False)
+except ImportError:
+    pass
+
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_planes, planes, norm_fn='group', stride=1):
