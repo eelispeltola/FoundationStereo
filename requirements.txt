@@ -1,0 +1,21 @@
+# Install into a venv created with --system-site-packages on the system Python,
+# so numpy, opencv and the ROS 2 packages (rclpy, cv_bridge, ...) come from the system.
+# Used for both offline scripts and scripts/ros_node.py. See readme "Installation".
+torch==2.14.1
+torchvision==0.29.1
+omegaconf==2.4.0
+timm==1.0.30
+einops==0.8.2
+imageio==2.38.1
+scipy==1.18.1
+pandas==3.0.6
+joblib==1.6.0
+trimesh==5.1.1
+open3d==0.20.0
+huggingface_hub==2.2.0
+scikit-image==0.26.0
+scikit-learn==1.9.1
+ruamel.yaml==0.19.1
+transformations==2026.8.8
+gdown==6.4.2
+ninja==1.13.2

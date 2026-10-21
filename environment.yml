@@ -21,6 +21,7 @@ dependencies:
     - albumentations
     - jupyterlab
     - scipy
+    - pandas
     - joblib
     - scikit-learn
     - ruamel.yaml

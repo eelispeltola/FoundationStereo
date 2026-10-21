@@ -49,6 +49,27 @@ Our method outperforms existing approaches in zero-shot stereo matching tasks ac
 
 We've tested on Linux with GPU 3090, 4090, A100, V100, Jetson Orin. Other GPUs should also work, but make sure you have enough memory
 
+There are two options. Use the venv if you want the ROS 2 node. Either one works for the offline scripts.
+
+### Option 1: venv (offline scripts + ROS 2 node)
+The venv is built on the system Python with `--system-site-packages`, so `numpy`, `opencv` and, if installed, ROS 2 (`rclpy`, `cv_bridge`, `message_filters`) come from the system. Tested with Python 3.14, ROS 2 Lyrical and an RTX 5060 (CUDA 13 wheels).
+
+```
+sudo apt install python3-venv # python3-numpy python3-opencv
+python3 -m venv --system-site-packages .venv
+.venv/bin/pip install -r requirements.txt
+source .venv/bin/activate
+```
+
+`xformers` and `flash-attn` are optional. Without them the model falls back to standard attention and prints `xFormers is not available` warnings. Only install them if a wheel matches your torch and Python versions.
+
+```
+.venv/bin/pip install --no-deps xformers --index-url https://download.pytorch.org/whl/cu130
+```
+
+### Option 2: conda (offline scripts only)
+The conda env uses its own Python 3.11, so it can't import the system ROS 2 packages and can't run `scripts/ros_node.py`.
+
 ```
 conda env create -f environment.yml
 conda run -n foundation_stereo pip install flash-attn
@@ -85,9 +106,30 @@ Tips:
 - Our method works best on stereo RGB images. However, we have also tested it on monochrome or IR stereo images (e.g. from RealSense D4XX series) and it works well too.
 - For all options and instructions, check by `python scripts/run_demo.py --help`
 - To get point cloud for your own data, you need to specify the intrinsics. In the intrinsic file in args, 1st line is the flattened 1x9 intrinsic matrix, 2nd line is the baseline (distance) between the left and right camera, unit in meters.
-- For high-resolution image (>1000px), you can either (1) run with `--hiera 1` to enable hierarchical inference to get full resolution depth but slower; or (2) run with smaller scale, e.g. `--scale 0.5` to get downsized resolution depth but faster.
+- For high-resolution image (>1000px), you can either (1) run with `--hiera 1` to enable hierarchicöal inference to get full resolution depth but slower; or (2) run with smaller scale, e.g. `--scale 0.5` to get downsized resolution depth but faster.
 - For faster inference, you can reduce the input image resolution by e.g. `--scale 0.5`, and reduce refine iterations by e.g. `--valid_iters 16`.
 
+
+
+# ROS 2 node (live camera or rosbag)
+`scripts/ros_node.py` subscribes to a rectified stereo pair and publishes:
+- `~/disparity` (`stereo_msgs/DisparityImage`)
+- `~/depth` (`32FC1`, meters, NaN where invalid)
+- `~/points` (`PointCloud2`, XYZRGB in the left optical frame)
+- `~/disparity_vis` (color-mapped disparity)
+
+The defaults are the ZED X topics from the ZED ROS 2 wrapper 5.x (`/zed/zed_node/{left,right}/color/rect/image` + `camera_info`). The baseline is read from the right camera_info projection matrix, or you can set it with `-p baseline:=0.12`.
+
+Run it from the venv in [Installation](#option-1-venv-offline-scripts--ros-2-node) (option 1), after sourcing ROS 2. The conda env can't import ROS 2:
+```
+source /opt/ros/<distro>/setup.bash
+source ./.venv/bin/activate
+python scripts/ros_node.py --ros-args -p scale:=0.5 -p valid_iters:=16
+# for a bag that stored compressed images:
+#   ... --ros-args -p compressed:=true
+ros2 bag play <bag> --rate 0.05
+```
+Inference is slower than the camera rate, so the node always processes the newest pair and drops older ones. Lower `--rate` on `ros2 bag play` to process more frames. Other parameters: `hiera`, `remove_invisible`, `z_far`, `publish_cloud`, `publish_vis`, `best_effort`, `sync_slop`, `ckpt_dir`, plus the topic names.
 
 
 # ONNX/TensorRT(TRT) Inference
