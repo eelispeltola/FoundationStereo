@@ -112,7 +112,7 @@ Tips:
 
 
 # ROS 2 node (live camera or rosbag)
-`scripts/ros_node.py` subscribes to a rectified stereo pair and publishes:
+`scripts/ros_node.py` subscribes to a stereo pair (rectified, or raw with `-p rectify:=true`) and publishes:
 - `~/disparity` (`stereo_msgs/DisparityImage`)
 - `~/depth` (`32FC1`, meters, NaN where invalid)
 - `~/points` (`PointCloud2`, XYZRGB in the left optical frame)
@@ -129,7 +129,16 @@ python scripts/ros_node.py --ros-args -p scale:=0.5 -p valid_iters:=16
 #   ... --ros-args -p compressed:=true
 ros2 bag play <bag> --rate 0.05
 ```
-Inference is slower than the camera rate, so the node always processes the newest pair and drops older ones. Lower `--rate` on `ros2 bag play` to process more frames. Other parameters: `hiera`, `remove_invisible`, `z_far`, `publish_cloud`, `publish_vis`, `best_effort`, `sync_slop`, `ckpt_dir`, plus the topic names.
+**Unrectified (raw) images.** With `-p rectify:=true` the node computes a stereo rectification from both raw camera_infos: each one's K and D, the rotation in the right one's R, and the baseline in the right one's P. It then rectifies every pair before inference. Use this instead of `image_proc`: the raw ZED camera_infos don't describe a rectified pair, so `image_proc` would leave the rows misaligned. The outputs are in the rectified left frame, which is rotated slightly from the raw left optical frame. Example for a ZED X driver that only records raw compressed images, with left and right in separate bag splits:
+```
+N=/narrow_stereo_camera/camera_driver
+python scripts/ros_node.py --ros-args -p rectify:=true -p compressed:=true \
+  -p left_topic:=$N/left/color/raw/image -p right_topic:=$N/right/color/raw/image \
+  -p left_info_topic:=$N/left/color/raw/image/camera_info -p right_info_topic:=$N/right/color/raw/image/camera_info
+ros2 bag play -i <bag>-3 -i <bag>-2 --rate 0.05
+```
+
+Inference is slower than the camera rate, so the node always processes the newest pair and drops older ones. Lower `--rate` on `ros2 bag play` to process more frames. Other parameters: `rotation_correction_deg` (small extra rotation `[rx, ry, rz]` of the right camera when the camera_info calibration is slightly off; yaw `ry` shows up as a constant disparity bias, so calibrate it against lidar or known distances), `rectify`, `mask_sky` (drop textureless regions touching the top edge, where stereo hallucinates depth; `sky_texture_thresh` tunes it), `max_width` (auto-downscale wide inputs; 1280 keeps 1080p within 8 GB GPU memory), `hiera`, `remove_invisible`, `z_far`, `publish_cloud`, `publish_vis`, `best_effort`, `sync_slop`, `ckpt_dir`, plus the topic names.
 
 
 # ONNX/TensorRT(TRT) Inference
